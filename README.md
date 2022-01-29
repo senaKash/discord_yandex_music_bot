@@ -41,6 +41,6 @@ super().handle_unknown_kwargs(self, **kwargs)
   
   
 Пожалуйста, если вы нашли новую ошибку, скопируйте консольный лог и отправьте мне в [Issues](https://github.com/senaKash/discord_yandex_music_bot/issues)
-или [Telegramm](https://t.me/MikuON)
+или [Telegram](https://t.me/MikuON)
 
 

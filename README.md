@@ -1,6 +1,7 @@
 # discord_yandex_music_bot
 
-Короче это демка музыкального дискорд бота который работает напрямую с янжекс музыкой (спасибо [MarshalX](https://github.com/MarshalX) за API).
+Короче это демка музыкального дискорд бота который работает напрямую с яндекс музыкой (спасибо [MarshalX](https://github.com/MarshalX) за API).
+
 
 Чтобы все работало:
 
@@ -38,3 +39,8 @@ super().handle_unknown_kwargs(self, **kwargs)
 -  `new_channel (текст)` - перейти в другой войс канал (указать название)  
 -  `volume (цифра)` - по логике должен регулировать громкость, но я чет не заметил чтобы работало
   
+  
+Пожалуйста, если вы нашли новую ошибку, скопируйте консольный лог и отправьте мне в [Issues](https://github.com/senaKash/discord_yandex_music_bot/issues)
+или [Telegramm](https://t.me/MikuON)
+
+

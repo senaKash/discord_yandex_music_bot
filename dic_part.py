@@ -369,4 +369,4 @@ async def ms_send(ctx, query):
 
 client = y_musick_start.authorization()
 bot.add_cog(Music(bot))
-bot.run('NzE5OTgyOTQzODQ1NzQ0NzEw.Xt_WXg.IoHwMZbqTZZEXRH6QC0m4lh5enk')#Тут указывает токен вашего бота
+bot.run('')#Тут указывает токен вашего бота

@@ -14,8 +14,6 @@ def proc_captcha(captcha_image_url):
 def logPassAuth():
         log = input('Введите почту: ')
         password = input('Введите пароль: ')
-        #log = 'ku.kuptsov@yandex.ru'
-        #password = 'kuzuchka1029384756'
         try:
                 client = Client.from_credentials(log, password, captcha_callback=proc_captcha)
                 return client

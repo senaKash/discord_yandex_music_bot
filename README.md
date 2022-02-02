@@ -7,7 +7,7 @@
 
 - 1 - идем на https://ffmpeg.org/download.html и скачиваем `Windows builds from gyan.dev`
 оттуда нам нужны 3 файла __ffmpeg.exe ffplay.exe ffprobe.exe__. Кидаем их в папку с кодом
-- 2 - устанавливаете `requirements.txt` (cd <путь до папки с кодом> <Enter> pip install -r requirements.txt <Enter>) если не знаете что это, прочитайте тут -> [requirements.txt](https://semakin.dev/2020/04/requirements_txt/)
+- 2 - устанавливаете `requirements.txt` (cd <путь до папки с кодом> <Enter> pip install -r requirements.txt <Enter>)p.s.(в ручную соберу позже, пока в txt есть лишнии библиотеки, сорян) если не знаете что это, прочитайте тут -> [requirements.txt](https://semakin.dev/2020/04/requirements_txt/)
 - 3 - в файле `dic-part.py` в самом низу вписываете свой токен
     - 3.1 Откуда взять токен?
       - идем на https://discord.com/developers/applications, авторизуемся и все дела

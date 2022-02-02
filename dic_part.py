@@ -4,6 +4,7 @@ import discord
 import os
 import random
 from urllib.parse import urlparse
+from asgiref.sync import async_to_sync
 
 import y_musick_start
  
@@ -11,85 +12,74 @@ from discord.ext import commands
 
 #d49ed4
 #embed = discord.Embed(title="", description="", colour=0xD49ED4)
+#embed.set_author(name="Sena", icon_url="https://static2.aniimg.com/upload/20170516/422/O/w/9/Ow9EEF.jpg")
 direct = 'tracks\\'
 if os.path.exists(direct) == False:
         os.mkdir('tracks')
 
 server, server_id, channel_id, voice, client = None, None, None, None, None
-is_pause = False
+is_pause, is_loop = False, False
 tasks = list()
 queue = []
 queue_playlist = []
 
 
+def create_embed(title, description):
+        embed = discord.Embed(title=title, description=description, colour=0xD49ED4)
+        #embed.set_author(name="Sena", icon_url="https://i.ytimg.com/vi/edKQaVGAzO0/hqdefault.jpg")
+        return embed
+
 def check_queue(client, ctx, voice):
         
-                global queue, queue_playlist, tasks
+                global queue, queue_playlist, is_loop
                 
-                async def redirect(ctx, mess):
-                        await ms_send(ctx, mess)
+                async def redirect(ctx, embed):
+                        await ms_send(ctx, embed)
                         
                 
                 if len(queue) == 0:
+                        print('обычная пустая')
                         files = os.listdir(direct)
                         for i in range(0, len(files)):
                                 os.remove(direct+files[i])
-                        #print('обычная очередь закончилась')
-                        ##
-                        #if len(queue_playlist) <= queue_pl_k:
-                        #       queue_pl_k = 0
+
                         if len(queue_playlist) !=0:
                                 res = y_musick_start.send_search_request_and_print_result(client, queue_playlist[0])
                                 print(res)
-                                queue_playlist.pop(0)
+                                if is_loop:
+                                        queue_playlist.append(queue_playlist[0])
+                                
+                                #queue_playlist.pop(0)
                                 player = direct+res
-                                #print(player)
                                 voice.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source = player), after = lambda x=0: check_queue(client, ctx, voice))
-                                #await ms_send(ctx, f'{player[:-3]}')
-                                loop = asyncio.get_event_loop()
-                                future = loop.run_until_complete('future').create_task(redirect(ctx, f'{res[:-3]}'))
-                                #loop.run_until_complete('future').create_task(redirect(ctx, f'{res[:-3]}'))
-                                while future.is_running():
-                                        print("луп крутится")
+                                asyncio.run_coroutine_threadsafe(redirect(ctx, create_embed('Сейчас играет', res[:-3])), bot.loop)
+                                del queue_playlist[0]
                                 
                         else:
+                                print('оба пустые')
                                 files = os.listdir(direct)
                                 for i in range(0, len(files)):
                                         os.remove(direct+files[i])
                 else:
-                        #print(len(queue))
-                        print(queue[0])
                         
-                        player = direct+str(queue.pop(0))
-                        #print(player)
-                        voice.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source = player), after = lambda x=0: check_queue(client, ctx, voice))
-                        asyncio.get_running_loop().run_until_complete('future').create_task(redirect(ctx, f'{res[:-3]}'))
-                
-                
-                '''
-                elif len(queue_playlist) == 0:
-                        files = os.listdir(direct)
-                        for i in range(0, len(files)):
-                                os.remove(direct+files[i])
-                        #return 'очередь закончилась'
-                else:
-                        print(len(queue))
                         print(queue[0])
-                        
-                        player = direct+str(queue.pop(0))
-                        print(player)
+                        res = queue[0]
+                        player = direct+str(queue[0])
+                        if is_loop:
+                                queue.append(queue[0])
                         voice.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source = player), after = lambda x=0: check_queue(client, ctx, voice))
-                        asyncio.get_running_loop().create_task(redirect(ctx, f'{player[:-3]}'))
-                        #await ms_send(ctx, f'{player[:-3]}')
-                        #return str(player)
-                        #ms.ms_send(ctx, f'Сейчас играет: {player[:-3]}')
-                        #ctx.send(f'Сейчас играет: {player[:-3]}')
-                '''
+                        asyncio.run_coroutine_threadsafe(redirect(ctx, create_embed('Сейчас играет', res[:-3])), bot.loop)
+                        del queue[0]
+                        
  
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
- 
+        
+    #@commands.command()
+    #async def join(self, ctx):
+            
+
    
     @commands.command()
     async def join(self, ctx, *, command =  None):   
@@ -102,7 +92,7 @@ class Music(commands.Cog):
         server_id = ctx.guild.id
         server = bot.get_guild(server_id)
         voice_channel = discord.utils.get(ctx.guild.voice_channels, id = channel_id)
-        embed = discord.Embed(title="Join", description=f"Connect to {name_channel}", colour=0xD49ED4)
+        embed = discord.Embed(title=f"Connect to {name_channel}", description="", colour=0xD49ED4)
         await ctx.send(embed = embed)
         voice = discord.utils.get(bot.voice_clients, guild = server)
         if voice is None:
@@ -123,7 +113,8 @@ class Music(commands.Cog):
         voice = discord.utils.get(bot.voice_clients, guild = server)
         if voice is None:
                 await voice_channel.connect()
-                await ctx.send(f'Connect to {name_channel}')
+                embed = create_embed(f'Connect to {name_channel}', '')
+                await ctx.send(embed = embed)
         voice = discord.utils.get(bot.voice_clients, guild = server)
 
         url = urlparse(query)
@@ -131,24 +122,30 @@ class Music(commands.Cog):
                 album_id = url[2][7:]
                 tracks_list = y_musick_start.albums_to_playlist(client, album_id)
                 print(album_id)
-                await ctx.send(tracks_list.pop())
+                embed = create_embed(tracks_list.pop(), "")
+                await ctx.send(embed = embed)
                 queue_playlist += tracks_list
                 check_queue(client, ctx, voice)
         else:
                 res = y_musick_start.send_search_request_and_print_result(client, query)
                 if res == '-1' or res is None:
-                        await ctx.send('трек не найден')
+                        embed = create_embed("трек не найден", "")
+                        await ctx.send(embed = embed)
                         if (len(queue) != 0 or len(queue_playlist) !=0):
                                 check_queue(client, ctx, voice)
                 else:
                         if ctx.voice_client.is_playing():
                                 queue.append(res)
-                                await ctx.send(f'{res[:-3]} добавлено в очередь')
+                                embed = create_embed( f'{res[:-3]}', 'добавлено в очередь')
+                                await ctx.send(embed = embed)
                         else:
-                                player = direct+str(res)
-                                print(player)
-                                voice.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source = player), after = lambda x=0: check_queue(client, ctx, voice))
-                                await ctx.send(f'Сейчас играет: {res[:-3]}')
+                                #player = direct+str(res)
+                                queue.append(res)
+                                #print(player)
+                                check_queue(client, ctx, voice)
+                                #voice.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source = player), after = lambda x=0: check_queue(client, ctx, voice))
+                                #embed = create_embed('Сейчас играет', f'{res[:-3]}')
+                                #await ctx.send(embed = embed)
                         
     @commands.command()
     #async def queue(self, ctx, *, query):
@@ -195,14 +192,8 @@ class Music(commands.Cog):
                     else:
                             await ctx.send(queue_playlist)
             else:
-                    await ctx.send('звуки пустоты')
-            #res = y_musick_start.send_search_request_and_print_result(query)
-            #print(res)
-            #if res == '-1':
-            #        await ctx.send('трек не найден')
-            #else:
-            #        queue.append(res)
-            #        await ctx.send(f'{res[:-3]} добавлено в очередь')
+                    embed = create_embed('звуки пустоты', '')
+                    await ctx.send(embed = embed)
 
     @commands.command()
     async def show_playlists(self, ctx):
@@ -217,18 +208,24 @@ class Music(commands.Cog):
                     random.shuffle(queue)
             if len(queue_playlist) != 0:
                     random.shuffle(queue_playlist)
-            await ctx.send('Skyrim Shuffle complite!')
+            #ctx.send('Skyrim Shuffle complite!')
+            embed = create_embed('Skyrim Shuffle complite!', '')
+            await ctx.send(embed = embed)
             
     @commands.command()
     async def playlist(self, ctx, *, title_list):
 
             global client
             await ctx.send(y_musick_start.playlist_info(client, title_list))
-            await ctx.send('При большем количестве треков потребуется время для их извлечения из ЯМ')
+            #await ctx.send('При большем количестве треков потребуется время для их извлечения из ЯМ')
+            embed = create_embed('ВНИМАНИЕ', 'При большем количестве треков потребуется время для их извлечения из ЯМ')
+            await ctx.send(embed = embed)
             
             global queue_playlist
             queue_playlist += y_musick_start.tracks_from_playlist(client, title_list)
-            await ctx.send('Очередь успешно заполнена')
+            embed = create_embed('Очередь успешно заполнена', '')
+            await ctx.send(embed = embed)
+            ######тут убрать элементы массивов
             if len(queue_playlist) >= 66:
                     how_parts = int(len(queue_playlist)/66+1)
                     print(how_parts)
@@ -256,7 +253,9 @@ class Music(commands.Cog):
             server_id = ctx.guild.id
             server = bot.get_guild(server_id)
             voice_channel = discord.utils.get(ctx.guild.voice_channels, id = channel_id)
-            await ctx.send(f'Connect to {name_channel}')
+            embed = create_embed(f'Connect to {name_channel}', '')
+            await ctx.send(embed = embed)
+            #await ctx.send(f'Connect to {name_channel}')
             voice = discord.utils.get(bot.voice_clients, guild = server)
             if voice is None:
                     await voice_channel.connect()
@@ -269,20 +268,47 @@ class Music(commands.Cog):
     async def test(self, ctx, *, title_list):
             await ms_send(ctx, title_list)
             check_queue(client, ctx, title_list)
-
-    #@commands.command()     
-    #async def ms_send(self, ctx, *, query):
-    #        await ctx.send(query)
             
     @commands.command()
     async def volume(self, ctx, volume: int):
         """Changes the player's volume"""
         if ctx.voice_client is None:
-                return await ctx.send("Not connected to a voice channel.")
+                embed = create_embed('Not connected to a voice channel.', '')
+                return await ctx.send(embed = embed)
+        
  
         ctx.voice_client.source.volume = volume / 100
-        await ctx.send(f"Changed volume to {volume}%")
-        
+        embed = create_embed(f"Changed volume to {volume}%", '')
+        await ctx.send(embed = embed)
+        #await ctx.send(f"Changed volume to {volume}%")
+
+    @commands.command()
+    async def loop(self, ctx):
+            global is_loop, queue, queue_playlist
+            '''
+            #if len(queue) == 0 and len(queue_playlist) == 0:
+            #        embed = create_embed('LOOPить нечего', '')
+            #        await ctx.send(embed = embed)
+            #else:        
+                    if is_loop == False:
+                            is_loop = True
+                            embed = create_embed('заLOOPил', '')
+                            await ctx.send(embed = embed)
+                    else:
+                            is_loop = False
+                            embed = create_embed('разLOOPил', '')
+                            await ctx.send(embed = embed)
+                '''
+            if is_loop == False:
+                    is_loop = True
+                    embed = create_embed('заLOOPил', '!НЕДОПИЛ!\nвсе последующие треки будут добавлены в луп')
+                    await ctx.send(embed = embed)
+            else:
+                    is_loop = False
+                    embed = create_embed('разLOOPил', '')
+                    await ctx.send(embed = embed)
+
+            
     @commands.command()
     async def skip(self, ctx):
             server_id = ctx.guild.id
@@ -290,7 +316,11 @@ class Music(commands.Cog):
             voice = discord.utils.get(bot.voice_clients, guild = server)
             voice_channel = server.voice_client
             voice_channel.stop()
-            check_queue(client, ctx, voice) 
+            #embed = create_embed("Скипнул", '')
+            #await ctx.send(embed = embed)
+            #global queue
+            #print(queue)
+            #check_queue(client, ctx, voice) 
 
  
     @commands.command()
@@ -314,7 +344,8 @@ class Music(commands.Cog):
         files = os.listdir(direct)
         for i in range(0, len(files)):
                 os.remove(direct+files[i])
-        await ctx.send('Очередь очищена')
+        embed = create_embed('Очередь очищена', '')
+        await ctx.send(embed = embed)
         
     @commands.command()
     async def pause(self, ctx):
@@ -337,10 +368,11 @@ class Music(commands.Cog):
     @commands.command()
     async def new_channel(self, ctx, *, channel: discord.VoiceChannel):
         """Joins a voice channel"""
-        await ctx.send(channel)
+        
+        embed = create_embed(f'Подрубился к {channel}', '')
+        await ctx.send(embed = embed)
         if ctx.voice_client is not None:
             return await ctx.voice_client.move_to(channel)
- 
         await channel.connect()
 
     @play.before_invoke
@@ -364,8 +396,8 @@ async def on_ready():
     print('------')
 
 @bot.event
-async def ms_send(ctx, query):
-        await ctx.send(query)
+async def ms_send(ctx, embed):
+        await ctx.send(embed = embed)
 
 client = y_musick_start.authorization()
 bot.add_cog(Music(bot))

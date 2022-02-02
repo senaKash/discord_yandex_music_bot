@@ -5,7 +5,7 @@ import os
 #import dic_part
 
 direct = 'tracks\\'
-
+bdDir = 'database\\'
 
 def proc_captcha(captcha_image_url):
         print(captcha_image_url['x_captcha_url'])
@@ -14,6 +14,8 @@ def proc_captcha(captcha_image_url):
 def logPassAuth():
         log = input('Введите почту: ')
         password = input('Введите пароль: ')
+        #log = 'ku.kuptsov@yandex.ru'
+        #password = 'kuzuchka1029384756'
         try:
                 client = Client.from_credentials(log, password, captcha_callback=proc_captcha)
                 return client
@@ -22,7 +24,8 @@ def logPassAuth():
                 logPassAuth()
 
 def authorization():
-        bdDir = 'database\\'
+        
+        #bdDir = 'database\\'
         #print(os.path.exists(bdDir))
         if os.path.exists(bdDir) == False:
                 os.mkdir('database')
@@ -61,16 +64,19 @@ def authorization():
                         
                 except:
                         print('Ошибка авторизации по токену. Будет использована авторизация лог\пар')
+                        conn.close()
                         return logPassAuth()
         else:
                 conn = sqlite3.connect(f'{bdDir}YMbase.db')
                 cur = conn.cursor()
                 cur.execute("""SELECT * from userInfo""")
                 records = cur.fetchall()
+                conn.close()
                 print('ваш токен успешно считан:')
                 #print(records[0][1])
                 try:
                         print(records[0][1])
+                        print('\n\n\n')
                         client = Client.from_token(records[0][1])
                         print(f'\n\n\n{records[0][2]}, авторизация по токену завершена\n\n\n')
                         return client
@@ -104,11 +110,13 @@ def send_search_request_and_print_result(client, query):
         best = search_result.best.result
 
         #print(best)
-        #print(best.id)
+        print(best.id)
+        
         if type_ in ['track', 'podcast_episode']:
             artists = ''
             if best.artists:
                 artists = ' - ' + ', '.join(artist.name for artist in best.artists)
+                    
             best_result_text = best.title + artists
             path = direct+best_result_text+'.mp3'
             best.download(path)
@@ -215,6 +223,36 @@ def albums_to_playlist(client, ALBUM_ID):
         text += f"Исполнитель: {', '.join([artist.name for artist in album.artists])}\n"
         tracks_list.append(text)
         return tracks_list
+def add_to_likes(client, query):
+        search_result = client.search(query)
+        print(search_result)
+        if search_result.best:
+                best = search_result.best.result
+
+        #print(best)
+        print(best.id)
+        conn = sqlite3.connect(f'{bdDir}YMbase.db')
+        cur = conn.cursor()
+        cur.execute("""SELECT * from userInfo""")
+        records = cur.fetchall()
+        conn.close()
+        res = client.users_likes_tracks_add(best.id, records[0][0])
+        print(res)
+def remove_from_likes(client, query):
+        search_result = client.search(query)
+        print(search_result)
+        if search_result.best:
+                best = search_result.best.result
+
+        #print(best)
+        print(best.id)
+        conn = sqlite3.connect(f'{bdDir}YMbase.db')
+        cur = conn.cursor()
+        cur.execute("""SELECT * from userInfo""")
+        records = cur.fetchall()
+        conn.close()
+        res = client.susers_likes_tracks_remove(best.id, records[0][0])
+        print(res)
 '''
 if __name__ == '__main__':
     while True:
@@ -226,3 +264,7 @@ if __name__ == '__main__':
 #playlist_info(clientAss, 'Плейлист дня')
 #print(albums_playlist(clientAss, 5829983))
 #tracks_from_playlist(clientAss, 'плейлист дня')
+#send_search_request_and_print_result(clientAss, 'монеточка падать в грязь')
+#add_to_likes(clientAss, 'монеточка падать в грязь')
+
+#remove_from_likes(clientAss, 'монеточка падать в грязь')
